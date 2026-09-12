@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#07090b" />
+  <title>Grandstone Formula 2026</title>
+  <style>
+    html,body{margin:0;width:100%;height:100%;background:#07090b;color:#fff;font-family:system-ui,sans-serif}
+    #boot{position:fixed;inset:0;display:grid;place-items:center;background:#07090b}
+    .bootbox{text-align:center}.bootbox b{display:block;font-size:28px;letter-spacing:.08em}.bootbox span{display:block;margin-top:10px;color:#f2ff48;font-size:12px;letter-spacing:.18em}
+  </style>
+</head>
+<body>
+  <div id="boot"><div class="bootbox"><b>GRANDSTONE</b><span>LOADING FORMULA 2026</span></div></div>
+  <script>
+  (async()=>{
+    try{
+      const r=await fetch('./payload.b64',{cache:'no-store'});
+      if(!r.ok) throw new Error('Game payload download failed: '+r.status);
+      const b64=(await r.text()).trim();
+      const raw=Uint8Array.from(atob(b64),c=>c.charCodeAt(0));
+      if(typeof DecompressionStream!=='function') throw new Error('This browser does not support DecompressionStream. Use a current Chrome or Edge.');
+      const stream=new Blob([raw]).stream().pipeThrough(new DecompressionStream('gzip'));
+      const html=await new Response(stream).text();
+      document.open();
+      document.write(html);
+      document.close();
+    }catch(err){
+      document.body.innerHTML='<div style="padding:32px;background:#07090b;color:white;font:16px/1.5 system-ui"><h1 style="color:#f2ff48">GRANDSTONE LOAD ERROR</h1><p>'+String(err&&err.message||err)+'</p></div>';
+    }
+  })();
+  </script>
+</body>
+</html>
