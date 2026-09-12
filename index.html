@@ -20,7 +20,7 @@
   (async()=>{
     const bootmsg=document.getElementById('bootmsg');
     try{
-      const files=[0,1,2,3,4,5].map(i=>`./payload.${i}.txt?rev=5`);
+      const files=[0,1,2,3,4,5].map(i=>`./payload.${i}.txt?rev=6`);
       bootmsg.textContent='DOWNLOADING GAME PACKAGE';
       const parts=await Promise.all(files.map(async(file,i)=>{
         const r=await fetch(file,{cache:'no-store'});
@@ -35,7 +35,8 @@
       if(typeof DecompressionStream!=='function') throw new Error('Use a current Chrome or Edge browser.');
       const stream=new Blob([raw]).stream().pipeThrough(new DecompressionStream('gzip'));
       const html=await new Response(stream).text();
-      if(html.length!==72066) throw new Error(`Decompressed game size mismatch: ${html.length} / 72066`);
+      const htmlBytes=new TextEncoder().encode(html).length;
+      if(htmlBytes!==72066) throw new Error(`Decompressed game byte-size mismatch: ${htmlBytes} / 72066`);
       if(!html.includes('Grandstone Formula 2026')||!html.includes('[hidden]{display:none!important}')) throw new Error('Game package validation failed.');
       bootmsg.textContent='STARTING RACE ENGINE';
       const url=URL.createObjectURL(new Blob([html],{type:'text/html'}));
