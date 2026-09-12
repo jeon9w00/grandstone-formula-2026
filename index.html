@@ -7,38 +7,40 @@
   <title>Grandstone Formula 2026</title>
   <style>
     html,body{margin:0;width:100%;height:100%;background:#07090b;color:#fff;font-family:system-ui,sans-serif;overflow:hidden}
-    #boot{position:fixed;inset:0;display:grid;place-items:center;background:#07090b;z-index:10}
-    .bootbox{text-align:center}.bootbox b{display:block;font-size:28px;letter-spacing:.08em}.bootbox span{display:block;margin-top:10px;color:#f2ff48;font-size:12px;letter-spacing:.18em}
-    #err{display:none;position:fixed;inset:0;padding:32px;background:#07090b;color:white;z-index:99;font:16px/1.5 system-ui}
-    #err h1{color:#f2ff48}
+    #boot{position:fixed;inset:0;display:grid;place-items:center;background:#07090b}
+    .box{text-align:center}.box b{display:block;font-size:30px;letter-spacing:.08em}.box span{display:block;margin-top:10px;color:#f2ff48;font-size:12px;letter-spacing:.16em}
+    #err{display:none;position:fixed;inset:0;padding:32px;background:#07090b;color:#fff;font:16px/1.55 system-ui}#err h1{color:#f2ff48}
   </style>
 </head>
 <body>
-  <div id="boot"><div class="bootbox"><b>GRANDSTONE</b><span id="bootmsg">LOADING FORMULA 2026</span></div></div>
+  <div id="boot"><div class="box"><b>GRANDSTONE</b><span id="status">LOADING GAMEPLAY OVERHAUL</span></div></div>
   <div id="err"><h1>GRANDSTONE LOAD ERROR</h1><p id="errmsg"></p></div>
   <script>
   (async()=>{
-    const bootmsg=document.getElementById('bootmsg');
+    const status=document.getElementById('status');
     try{
-      const files=[0,1,2,3,4,5].map(i=>`./payload.${i}.txt?rev=6`);
-      bootmsg.textContent='DOWNLOADING GAME PACKAGE';
-      const parts=await Promise.all(files.map(async(file,i)=>{
-        const r=await fetch(file,{cache:'no-store'});
-        if(!r.ok) throw new Error(`Game payload part ${i} failed: HTTP ${r.status}`);
-        return (await r.text()).replace(/\s+/g,'');
-      }));
-      const b64=parts.join('');
-      if(b64.length!==31580) throw new Error(`Game package size mismatch: ${b64.length} / 31580`);
-      if(!/^[A-Za-z0-9+/]*={0,2}$/.test(b64)) throw new Error('Game package contains invalid Base64 data.');
-      bootmsg.textContent='VERIFYING GAME PACKAGE';
-      const raw=Uint8Array.from(atob(b64),c=>c.charCodeAt(0));
       if(typeof DecompressionStream!=='function') throw new Error('Use a current Chrome or Edge browser.');
-      const stream=new Blob([raw]).stream().pipeThrough(new DecompressionStream('gzip'));
+      const files=Array.from({length:7},(_,i)=>`./payload-v7.${i}.txt?rev=8`);
+      status.textContent='DOWNLOADING GAME PACKAGE';
+      const parts=[];
+      for(let i=0;i<files.length;i++){
+        const r=await fetch(files[i],{cache:'no-store'});
+        if(!r.ok) throw new Error(`Payload part ${i} failed: HTTP ${r.status}`);
+        const part=(await r.text()).replace(/\s+/g,'');
+        if(i<6&&part.length!==6000) throw new Error(`Payload part ${i} size mismatch: ${part.length}`);
+        parts.push(part);
+      }
+      const b64=parts.join('');
+      if(b64.length!==36812) throw new Error(`Game package size mismatch: ${b64.length} / 36812`);
+      if(!/^[A-Za-z0-9+/]*={0,2}$/.test(b64)) throw new Error('Game package contains invalid Base64 data.');
+      status.textContent='VERIFYING PHYSICS BUILD';
+      const bytes=Uint8Array.from(atob(b64),c=>c.charCodeAt(0));
+      const stream=new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
       const html=await new Response(stream).text();
-      const htmlBytes=new TextEncoder().encode(html).length;
-      if(htmlBytes!==72066) throw new Error(`Decompressed game byte-size mismatch: ${htmlBytes} / 72066`);
-      if(!html.includes('Grandstone Formula 2026')||!html.includes('[hidden]{display:none!important}')) throw new Error('Game package validation failed.');
-      bootmsg.textContent='STARTING RACE ENGINE';
+      const byteLength=new TextEncoder().encode(html).length;
+      if(byteLength!==83118) throw new Error(`Decompressed game byte-size mismatch: ${byteLength} / 83118`);
+      if(!html.includes('CAR STATUS')||!html.includes('Steering Assist')||!html.includes('[hidden]{display:none!important}')) throw new Error('Gameplay overhaul validation failed.');
+      status.textContent='STARTING RACE ENGINE';
       const url=URL.createObjectURL(new Blob([html],{type:'text/html'}));
       location.replace(url);
     }catch(err){
