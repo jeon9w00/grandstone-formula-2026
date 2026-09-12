@@ -7,40 +7,42 @@
   <title>Grandstone Formula 2026</title>
   <style>
     html,body{margin:0;width:100%;height:100%;background:#07090b;color:#fff;font-family:system-ui,sans-serif;overflow:hidden}
-    #boot{position:fixed;inset:0;display:grid;place-items:center;background:#07090b}
-    .box{text-align:center}.box b{display:block;font-size:30px;letter-spacing:.08em}.box span{display:block;margin-top:10px;color:#f2ff48;font-size:12px;letter-spacing:.16em}
+    #boot{position:fixed;inset:0;display:grid;place-items:center;background:#07090b}.box{text-align:center}
+    .box b{display:block;font-size:30px;letter-spacing:.08em}.box span{display:block;margin-top:10px;color:#f2ff48;font-size:12px;letter-spacing:.16em}
     #err{display:none;position:fixed;inset:0;padding:32px;background:#07090b;color:#fff;font:16px/1.55 system-ui}#err h1{color:#f2ff48}
   </style>
 </head>
 <body>
-  <div id="boot"><div class="box"><b>GRANDSTONE</b><span id="status">LOADING GAMEPLAY OVERHAUL</span></div></div>
+  <div id="boot"><div class="box"><b>GRANDSTONE</b><span id="status">LOADING V10 RACE ENGINE</span></div></div>
   <div id="err"><h1>GRANDSTONE LOAD ERROR</h1><p id="errmsg"></p></div>
   <script>
   (async()=>{
     const status=document.getElementById('status');
     try{
       if(typeof DecompressionStream!=='function') throw new Error('Use a current Chrome or Edge browser.');
-      const files=Array.from({length:7},(_,i)=>`./payload-v7.${i}.txt?rev=8`);
-      status.textContent='DOWNLOADING GAME PACKAGE';
+      const sizes=[5500,5500,5500,5500,5500,5500,5500,3476];
+      const files=sizes.map((_,i)=>`./v10.${i}.txt?rev=10`);
+      status.textContent='DOWNLOADING V10 GAME PACKAGE';
       const parts=[];
       for(let i=0;i<files.length;i++){
         const r=await fetch(files[i],{cache:'no-store'});
-        if(!r.ok) throw new Error(`Payload part ${i} failed: HTTP ${r.status}`);
+        if(!r.ok) throw new Error(`V10 payload part ${i} failed: HTTP ${r.status}`);
         const part=(await r.text()).replace(/\s+/g,'');
-        if(i<6&&part.length!==6000) throw new Error(`Payload part ${i} size mismatch: ${part.length}`);
+        if(part.length!==sizes[i]) throw new Error(`V10 payload part ${i} size mismatch: ${part.length} / ${sizes[i]}`);
         parts.push(part);
       }
       const b64=parts.join('');
-      if(b64.length!==36812) throw new Error(`Game package size mismatch: ${b64.length} / 36812`);
-      if(!/^[A-Za-z0-9+/]*={0,2}$/.test(b64)) throw new Error('Game package contains invalid Base64 data.');
-      status.textContent='VERIFYING PHYSICS BUILD';
+      if(b64.length!==41976) throw new Error(`V10 package size mismatch: ${b64.length} / 41976`);
+      if(!/^[A-Za-z0-9+/]*={0,2}$/.test(b64)) throw new Error('V10 package contains invalid Base64 data.');
+      status.textContent='VERIFYING V10 BUILD';
       const bytes=Uint8Array.from(atob(b64),c=>c.charCodeAt(0));
       const stream=new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
       const html=await new Response(stream).text();
       const byteLength=new TextEncoder().encode(html).length;
-      if(byteLength!==83118) throw new Error(`Decompressed game byte-size mismatch: ${byteLength} / 83118`);
-      if(!html.includes('CAR STATUS')||!html.includes('Steering Assist')||!html.includes('[hidden]{display:none!important}')) throw new Error('Gameplay overhaul validation failed.');
-      status.textContent='STARTING RACE ENGINE';
+      if(byteLength!==96226) throw new Error(`V10 game byte-size mismatch: ${byteLength} / 96226`);
+      const required=['Grandstone Formula 2026','SAFETY CAR','FRONT WING CHANGE','COCKPIT','CAR STATUS'];
+      for(const term of required){if(!html.includes(term)) throw new Error(`V10 validation failed: missing ${term}`);}
+      status.textContent='STARTING V10 RACE ENGINE';
       const url=URL.createObjectURL(new Blob([html],{type:'text/html'}));
       location.replace(url);
     }catch(err){
