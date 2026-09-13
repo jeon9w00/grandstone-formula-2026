@@ -13,67 +13,31 @@
   </style>
 </head>
 <body>
-  <div id="boot"><div class="box"><b>GRANDSTONE</b><span id="status">LOADING V12 HANDLING + AI</span></div></div>
+  <div id="boot"><div class="box"><b>GRANDSTONE</b><span id="status">LOADING V13 RACE ENGINE</span></div></div>
   <div id="err"><h1>GRANDSTONE LOAD ERROR</h1><p id="errmsg"></p></div>
   <script>
   (async()=>{
     const status=document.getElementById('status');
-    const gunzip=async b64=>{
-      const clean=b64.replace(/\s+/g,'');
-      const bytes=Uint8Array.from(atob(clean),c=>c.charCodeAt(0));
-      return new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
-    };
+    const gunzip=async b64=>{const clean=b64.replace(/\s+/g,'');const bytes=Uint8Array.from(atob(clean),c=>c.charCodeAt(0));return new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))).text()};
+    const sha=async text=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text)))).map(x=>x.toString(16).padStart(2,'0')).join('');
     try{
-      if(typeof DecompressionStream!=='function') throw new Error('Use a current Chrome or Edge browser.');
-      const sizes=[5500,5500,5500,5500,5500,5500,5500,3476];
+      if(typeof DecompressionStream!=='function')throw new Error('Use a current Chrome or Edge browser.');
+      const sizes=[5500,5500,5500,5500,5500,5500,5500,3476],parts=[];
       status.textContent='DOWNLOADING BASE GAME';
-      const parts=[];
-      for(let i=0;i<sizes.length;i++){
-        const r=await fetch(`./v10.${i}.txt?rev=12`,{cache:'no-store'});
-        if(!r.ok) throw new Error(`Base payload part ${i} failed: HTTP ${r.status}`);
-        const part=(await r.text()).replace(/\s+/g,'');
-        if(part.length!==sizes[i]) throw new Error(`Base payload part ${i} size mismatch: ${part.length} / ${sizes[i]}`);
-        parts.push(part);
-      }
-      const base64=parts.join('');
-      if(base64.length!==41976) throw new Error(`Base package size mismatch: ${base64.length} / 41976`);
-      let html=await gunzip(base64);
-
-      status.textContent='APPLYING TRACK + STADIUM UPDATE';
-      const v11r=await fetch('./v11-patch.json?rev=12',{cache:'no-store'});
-      if(!v11r.ok) throw new Error(`V11 patch failed: HTTP ${v11r.status}`);
-      const v11=await v11r.json();
-      if(v11.version!==11||!Array.isArray(v11.replacements)) throw new Error('Invalid V11 patch package.');
-      for(let i=0;i<v11.replacements.length;i++){
-        const [from,to]=v11.replacements[i],count=html.split(from).length-1;
-        if(count!==1) throw new Error(`V11 patch ${i} match count ${count}`);
-        html=html.replace(from,to);
-      }
-      if(new TextEncoder().encode(html).length!==97788) throw new Error('V11 base validation failed.');
-
-      status.textContent='APPLYING V12 HANDLING + AI UPDATE';
-      const v12r=await fetch('./v12-patch.b64?rev=12',{cache:'no-store'});
-      if(!v12r.ok) throw new Error(`V12 patch failed: HTTP ${v12r.status}`);
-      const v12=JSON.parse(await gunzip(await v12r.text()));
-      if(v12.version!==12||v12.baseVersion!==11||!Array.isArray(v12.replacements)) throw new Error('Invalid V12 patch package.');
-      for(let i=0;i<v12.replacements.length;i++){
-        const [from,to]=v12.replacements[i],count=html.split(from).length-1;
-        if(count!==1) throw new Error(`V12 patch ${i} match count ${count}`);
-        html=html.replace(from,to);
-      }
-      const encoded=new TextEncoder().encode(html);
-      if(encoded.length!==100938) throw new Error(`V12 game byte-size mismatch: ${encoded.length} / 100938`);
-      const digest=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',encoded))).map(x=>x.toString(16).padStart(2,'0')).join('');
-      if(digest!=='dd0e6113f6e4a6b451ea21cc0c7654d9e7220854d8ec52217842861e5f06eb7c') throw new Error('V12 integrity check failed.');
-      const required=['playerCausedContact','stabilizeAI','findThreat(cars)','SAFETY CAR','SPACE hard brake','createBarrierMesh'];
-      for(const term of required){if(!html.includes(term)) throw new Error(`V12 validation failed: missing ${term}`);}
-      status.textContent='STARTING V12 RACE ENGINE';
-      location.replace(URL.createObjectURL(new Blob([html],{type:'text/html'})));
-    }catch(err){
-      document.getElementById('boot').style.display='none';
-      document.getElementById('err').style.display='block';
-      document.getElementById('errmsg').textContent=String(err&&err.message||err);
-    }
+      for(let i=0;i<sizes.length;i++){const r=await fetch(`./v10.${i}.txt?rev=13`,{cache:'no-store'});if(!r.ok)throw new Error(`Base part ${i} HTTP ${r.status}`);const part=(await r.text()).replace(/\s+/g,'');if(part.length!==sizes[i])throw new Error(`Base part ${i} size ${part.length}/${sizes[i]}`);parts.push(part)}
+      let html=await gunzip(parts.join(''));
+      status.textContent='APPLYING TRACK + STADIUM';
+      const v11r=await fetch('./v11-patch.json?rev=13',{cache:'no-store'});if(!v11r.ok)throw new Error(`V11 patch HTTP ${v11r.status}`);const v11=await v11r.json();for(let i=0;i<v11.replacements.length;i++){const [a,b]=v11.replacements[i],n=html.split(a).length-1;if(n!==1)throw new Error(`V11 patch ${i} match ${n}`);html=html.replace(a,b)}
+      if(new TextEncoder().encode(html).length!==97788)throw new Error('V11 validation failed');
+      status.textContent='APPLYING HANDLING + AI';
+      const v12r=await fetch('./v12-patch.b64?rev=13',{cache:'no-store'});if(!v12r.ok)throw new Error(`V12 patch HTTP ${v12r.status}`);const v12=JSON.parse(await gunzip(await v12r.text()));for(let i=0;i<v12.replacements.length;i++){const [a,b]=v12.replacements[i],n=html.split(a).length-1;if(n!==1)throw new Error(`V12 patch ${i} match ${n}`);html=html.replace(a,b)}
+      if(new TextEncoder().encode(html).length!==100938||await sha(html)!=='dd0e6113f6e4a6b451ea21cc0c7654d9e7220854d8ec52217842861e5f06eb7c')throw new Error('V12 integrity check failed');
+      status.textContent='APPLYING V13 GEARBOX + RACECRAFT + GRAPHICS';
+      const v13r=await fetch('./v13-patch.b64?rev=13',{cache:'no-store'});if(!v13r.ok)throw new Error(`V13 patch HTTP ${v13r.status}`);const v13=JSON.parse(await gunzip(await v13r.text()));if(v13.version!==13||!Array.isArray(v13.replacements))throw new Error('Invalid V13 patch');for(let i=0;i<v13.replacements.length;i++){const [a,b]=v13.replacements[i],n=html.split(a).length-1;if(n!==1)throw new Error(`V13 patch ${i} match ${n}`);html=html.replace(a,b)}
+      const encoded=new TextEncoder().encode(html);if(encoded.length!==v13.bytes)throw new Error(`V13 byte-size ${encoded.length}/${v13.bytes}`);if(await sha(html)!==v13.sha256)throw new Error('V13 integrity check failed');
+      for(const term of ['1–8 direct gear','MANUAL GEAR','createEdgeLineMesh','Hard physical barriers','drawTree(t)','CAR STATUS'])if(!html.includes(term))throw new Error(`V13 validation missing ${term}`);
+      status.textContent='STARTING V13 RACE ENGINE';location.replace(URL.createObjectURL(new Blob([html],{type:'text/html'})));
+    }catch(err){document.getElementById('boot').style.display='none';document.getElementById('err').style.display='block';document.getElementById('errmsg').textContent=String(err&&err.message||err)}
   })();
   </script>
 </body>
