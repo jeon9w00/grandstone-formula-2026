@@ -13,7 +13,7 @@
   </style>
 </head>
 <body>
-  <div id="boot"><div class="box"><b>GRANDSTONE</b><span id="status">LOADING V13 RACE ENGINE</span></div></div>
+  <div id="boot"><div class="box"><b>GRANDSTONE</b><span id="status">LOADING V14 PHYSICS BALANCE</span></div></div>
   <div id="err"><h1>GRANDSTONE LOAD ERROR</h1><p id="errmsg"></p></div>
   <script>
   (async()=>{
@@ -24,19 +24,22 @@
       if(typeof DecompressionStream!=='function')throw new Error('Use a current Chrome or Edge browser.');
       const sizes=[5500,5500,5500,5500,5500,5500,5500,3476],parts=[];
       status.textContent='DOWNLOADING BASE GAME';
-      for(let i=0;i<sizes.length;i++){const r=await fetch(`./v10.${i}.txt?rev=13`,{cache:'no-store'});if(!r.ok)throw new Error(`Base part ${i} HTTP ${r.status}`);const part=(await r.text()).replace(/\s+/g,'');if(part.length!==sizes[i])throw new Error(`Base part ${i} size ${part.length}/${sizes[i]}`);parts.push(part)}
+      for(let i=0;i<sizes.length;i++){const r=await fetch(`./v10.${i}.txt?rev=14`,{cache:'no-store'});if(!r.ok)throw new Error(`Base part ${i} HTTP ${r.status}`);const part=(await r.text()).replace(/\s+/g,'');if(part.length!==sizes[i])throw new Error(`Base part ${i} size ${part.length}/${sizes[i]}`);parts.push(part)}
       let html=await gunzip(parts.join(''));
       status.textContent='APPLYING TRACK + STADIUM';
-      const v11r=await fetch('./v11-patch.json?rev=13',{cache:'no-store'});if(!v11r.ok)throw new Error(`V11 patch HTTP ${v11r.status}`);const v11=await v11r.json();for(let i=0;i<v11.replacements.length;i++){const [a,b]=v11.replacements[i],n=html.split(a).length-1;if(n!==1)throw new Error(`V11 patch ${i} match ${n}`);html=html.replace(a,b)}
+      const v11r=await fetch('./v11-patch.json?rev=14',{cache:'no-store'});if(!v11r.ok)throw new Error(`V11 patch HTTP ${v11r.status}`);const v11=await v11r.json();for(let i=0;i<v11.replacements.length;i++){const [a,b]=v11.replacements[i],n=html.split(a).length-1;if(n!==1)throw new Error(`V11 patch ${i} match ${n}`);html=html.replace(a,b)}
       if(new TextEncoder().encode(html).length!==97788)throw new Error('V11 validation failed');
       status.textContent='APPLYING HANDLING + AI';
-      const v12r=await fetch('./v12-patch.b64?rev=13',{cache:'no-store'});if(!v12r.ok)throw new Error(`V12 patch HTTP ${v12r.status}`);const v12=JSON.parse(await gunzip(await v12r.text()));for(let i=0;i<v12.replacements.length;i++){const [a,b]=v12.replacements[i],n=html.split(a).length-1;if(n!==1)throw new Error(`V12 patch ${i} match ${n}`);html=html.replace(a,b)}
+      const v12r=await fetch('./v12-patch.b64?rev=14',{cache:'no-store'});if(!v12r.ok)throw new Error(`V12 patch HTTP ${v12r.status}`);const v12=JSON.parse(await gunzip(await v12r.text()));for(let i=0;i<v12.replacements.length;i++){const [a,b]=v12.replacements[i],n=html.split(a).length-1;if(n!==1)throw new Error(`V12 patch ${i} match ${n}`);html=html.replace(a,b)}
       if(new TextEncoder().encode(html).length!==100938||await sha(html)!=='dd0e6113f6e4a6b451ea21cc0c7654d9e7220854d8ec52217842861e5f06eb7c')throw new Error('V12 integrity check failed');
       status.textContent='APPLYING V13 GEARBOX + RACECRAFT + GRAPHICS';
-      const v13r=await fetch('./v13-patch.b64?rev=13',{cache:'no-store'});if(!v13r.ok)throw new Error(`V13 patch HTTP ${v13r.status}`);const v13=JSON.parse(await gunzip(await v13r.text()));if(v13.version!==13||!Array.isArray(v13.replacements))throw new Error('Invalid V13 patch');for(let i=0;i<v13.replacements.length;i++){const [a,b]=v13.replacements[i],n=html.split(a).length-1;if(n!==1)throw new Error(`V13 patch ${i} match ${n}`);html=html.replace(a,b)}
-      const encoded=new TextEncoder().encode(html);if(encoded.length!==v13.bytes)throw new Error(`V13 byte-size ${encoded.length}/${v13.bytes}`);if(await sha(html)!==v13.sha256)throw new Error('V13 integrity check failed');
-      for(const term of ['1–8 direct gear','MANUAL GEAR','createEdgeLineMesh','Hard physical barriers','drawTree(t)','CAR STATUS'])if(!html.includes(term))throw new Error(`V13 validation missing ${term}`);
-      status.textContent='STARTING V13 RACE ENGINE';location.replace(URL.createObjectURL(new Blob([html],{type:'text/html'})));
+      const v13r=await fetch('./v13-patch.b64?rev=14',{cache:'no-store'});if(!v13r.ok)throw new Error(`V13 patch HTTP ${v13r.status}`);const v13=JSON.parse(await gunzip(await v13r.text()));if(v13.version!==13||!Array.isArray(v13.replacements))throw new Error('Invalid V13 patch');for(let i=0;i<v13.replacements.length;i++){const [a,b]=v13.replacements[i],n=html.split(a).length-1;if(n!==1)throw new Error(`V13 patch ${i} match ${n}`);html=html.replace(a,b)}
+      let encoded=new TextEncoder().encode(html);if(encoded.length!==v13.bytes||await sha(html)!==v13.sha256)throw new Error('V13 integrity check failed');
+      status.textContent='APPLYING V14 PHYSICS BALANCE';
+      const v14r=await fetch('./v14-patch.b64?rev=14',{cache:'no-store'});if(!v14r.ok)throw new Error(`V14 patch HTTP ${v14r.status}`);const v14=JSON.parse(await gunzip(await v14r.text()));if(v14.version!==14||v14.baseVersion!==13||!Array.isArray(v14.replacements))throw new Error('Invalid V14 patch');for(let i=0;i<v14.replacements.length;i++){const [a,b]=v14.replacements[i],n=html.split(a).length-1;if(n!==1)throw new Error(`V14 patch ${i} match ${n}`);html=html.replace(a,b)}
+      encoded=new TextEncoder().encode(html);if(encoded.length!==v14.bytes)throw new Error(`V14 byte-size ${encoded.length}/${v14.bytes}`);if(await sha(html)!==v14.sha256)throw new Error('V14 integrity check failed');
+      for(const term of ['cornerAeroGrip:.000124','(saturation-.96)/1.78','brakeLatLoss=assists.abs?.47','1–8 direct gear','Hard physical barriers'])if(!html.includes(term))throw new Error(`V14 validation missing ${term}`);
+      status.textContent='STARTING V14 RACE ENGINE';location.replace(URL.createObjectURL(new Blob([html],{type:'text/html'})));
     }catch(err){document.getElementById('boot').style.display='none';document.getElementById('err').style.display='block';document.getElementById('errmsg').textContent=String(err&&err.message||err)}
   })();
   </script>
