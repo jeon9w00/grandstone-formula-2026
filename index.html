@@ -13,37 +13,68 @@
   </style>
 </head>
 <body>
-  <div id="boot"><div class="box"><b>GRANDSTONE</b><span id="status">LOADING V16 TABLET CONTROLS</span></div></div>
+  <div id="boot"><div class="box"><b>GRANDSTONE</b><span id="status">LOADING V17 MOBILE FIX</span></div></div>
   <div id="err"><h1>GRANDSTONE LOAD ERROR</h1><p id="errmsg"></p></div>
   <script>
   (async()=>{
     const status=document.getElementById('status');
-    const gunzip=async b64=>{const clean=b64.replace(/\s+/g,'');const bytes=Uint8Array.from(atob(clean),c=>c.charCodeAt(0));return new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))).text()};
+    const b64bytes=input=>{
+      const alphabet='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+      let s=String(input).replace(/-/g,'+').replace(/_/g,'/').replace(/[^A-Za-z0-9+/=]/g,'').replace(/=+$/,'');
+      if(!s.length)throw new Error('Empty Base64 payload');
+      const rem=s.length%4;
+      if(rem===1)throw new Error(`Corrupt Base64 payload length: ${s.length}`);
+      s+='='.repeat((4-rem)%4);
+      const out=[];
+      for(let i=0;i<s.length;i+=4){
+        const a=alphabet.indexOf(s[i]),b=alphabet.indexOf(s[i+1]);
+        const c=s[i+2]==='='?-1:alphabet.indexOf(s[i+2]);
+        const d=s[i+3]==='='?-1:alphabet.indexOf(s[i+3]);
+        if(a<0||b<0||(c<0&&s[i+2]!=='=')||(d<0&&s[i+3]!=='=')||(c<0&&d>=0))throw new Error(`Invalid Base64 quartet at ${i}`);
+        out.push((a<<2)|(b>>4));
+        if(c>=0)out.push(((b&15)<<4)|(c>>2));
+        if(d>=0)out.push(((c&3)<<6)|d);
+      }
+      return Uint8Array.from(out);
+    };
+    const gunzip=async b64=>new Response(new Blob([b64bytes(b64)]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
     const sha=async text=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text)))).map(x=>x.toString(16).padStart(2,'0')).join('');
     const apply=(html,patch,label)=>{for(let i=0;i<patch.replacements.length;i++){const[a,b]=patch.replacements[i],n=html.split(a).length-1;if(n!==1)throw new Error(`${label} patch ${i} match ${n}`);html=html.replace(a,b)}return html};
     try{
-      if(typeof DecompressionStream!=='function')throw new Error('Use a current Chrome or Edge browser.');
+      if(typeof DecompressionStream!=='function')throw new Error('This browser does not support gzip decompression. Please update Safari/Chrome.');
       const sizes=[5500,5500,5500,5500,5500,5500,5500,3476],parts=[];
       status.textContent='DOWNLOADING BASE GAME';
-      for(let i=0;i<sizes.length;i++){const r=await fetch(`./v10.${i}.txt?rev=16`,{cache:'no-store'});if(!r.ok)throw new Error(`Base part ${i} HTTP ${r.status}`);const part=(await r.text()).replace(/\s+/g,'');if(part.length!==sizes[i])throw new Error(`Base part ${i} size ${part.length}/${sizes[i]}`);parts.push(part)}
+      for(let i=0;i<sizes.length;i++){
+        const r=await fetch(`./v10.${i}.txt?rev=17`,{cache:'no-store'});
+        if(!r.ok)throw new Error(`Base part ${i} HTTP ${r.status}`);
+        const raw=await r.text();
+        const part=raw.replace(/[^A-Za-z0-9+/=]/g,'');
+        if(part.length!==sizes[i])throw new Error(`Base part ${i} size ${part.length}/${sizes[i]}`);
+        parts.push(part);
+      }
       let html=await gunzip(parts.join(''));
       status.textContent='APPLYING TRACK + STADIUM';
-      let r=await fetch('./v11-patch.json?rev=16',{cache:'no-store'});if(!r.ok)throw new Error(`V11 patch HTTP ${r.status}`);html=apply(html,await r.json(),'V11');
+      let r=await fetch('./v11-patch.json?rev=17',{cache:'no-store'});if(!r.ok)throw new Error(`V11 patch HTTP ${r.status}`);html=apply(html,await r.json(),'V11');
       if(new TextEncoder().encode(html).length!==97788)throw new Error('V11 validation failed');
       status.textContent='APPLYING HANDLING + AI';
-      r=await fetch('./v12-patch.b64?rev=16',{cache:'no-store'});if(!r.ok)throw new Error(`V12 patch HTTP ${r.status}`);html=apply(html,JSON.parse(await gunzip(await r.text())),'V12');
+      r=await fetch('./v12-patch.b64?rev=17',{cache:'no-store'});if(!r.ok)throw new Error(`V12 patch HTTP ${r.status}`);html=apply(html,JSON.parse(await gunzip(await r.text())),'V12');
       if(new TextEncoder().encode(html).length!==100938||await sha(html)!=='dd0e6113f6e4a6b451ea21cc0c7654d9e7220854d8ec52217842861e5f06eb7c')throw new Error('V12 integrity check failed');
       status.textContent='APPLYING GEARBOX + RACECRAFT + GRAPHICS';
-      r=await fetch('./v13-patch.b64?rev=16',{cache:'no-store'});if(!r.ok)throw new Error(`V13 patch HTTP ${r.status}`);const v13=JSON.parse(await gunzip(await r.text()));html=apply(html,v13,'V13');let encoded=new TextEncoder().encode(html);if(encoded.length!==v13.bytes||await sha(html)!==v13.sha256)throw new Error('V13 integrity check failed');
+      r=await fetch('./v13-patch.b64?rev=17',{cache:'no-store'});if(!r.ok)throw new Error(`V13 patch HTTP ${r.status}`);const v13=JSON.parse(await gunzip(await r.text()));html=apply(html,v13,'V13');let encoded=new TextEncoder().encode(html);if(encoded.length!==v13.bytes||await sha(html)!==v13.sha256)throw new Error('V13 integrity check failed');
       status.textContent='APPLYING PHYSICS BALANCE';
-      r=await fetch('./v14-patch.b64?rev=16',{cache:'no-store'});if(!r.ok)throw new Error(`V14 patch HTTP ${r.status}`);const v14=JSON.parse(await gunzip(await r.text()));html=apply(html,v14,'V14');encoded=new TextEncoder().encode(html);if(encoded.length!==v14.bytes||await sha(html)!==v14.sha256)throw new Error('V14 integrity check failed');
+      r=await fetch('./v14-patch.b64?rev=17',{cache:'no-store'});if(!r.ok)throw new Error(`V14 patch HTTP ${r.status}`);const v14=JSON.parse(await gunzip(await r.text()));html=apply(html,v14,'V14');encoded=new TextEncoder().encode(html);if(encoded.length!==v14.bytes||await sha(html)!==v14.sha256)throw new Error('V14 integrity check failed');
       status.textContent='APPLYING UI INTERACTION UPDATE';
-      r=await fetch('./v15-patch.b64?rev=16',{cache:'no-store'});if(!r.ok)throw new Error(`V15 patch HTTP ${r.status}`);const v15=JSON.parse(await gunzip(await r.text()));html=apply(html,v15,'V15');encoded=new TextEncoder().encode(html);if(encoded.length!==106760||await sha(html)!=='a770cf172b083b93cc7a1800ee944a9b231eeb9ba982709a942a5d5f0d973919')throw new Error('V15 integrity check failed');
+      r=await fetch('./v15-patch.b64?rev=17',{cache:'no-store'});if(!r.ok)throw new Error(`V15 patch HTTP ${r.status}`);const v15=JSON.parse(await gunzip(await r.text()));html=apply(html,v15,'V15');encoded=new TextEncoder().encode(html);if(encoded.length!==106760||await sha(html)!=='a770cf172b083b93cc7a1800ee944a9b231eeb9ba982709a942a5d5f0d973919')throw new Error('V15 integrity check failed');
       status.textContent='APPLYING TABLET TOUCH LAYOUT';
-      r=await fetch('./v16-patch.b64?rev=16',{cache:'no-store'});if(!r.ok)throw new Error(`V16 patch HTTP ${r.status}`);const v16=JSON.parse(await gunzip(await r.text()));if(v16.version!==16||v16.baseVersion!==15)throw new Error('Invalid V16 patch');html=apply(html,v16,'V16');encoded=new TextEncoder().encode(html);if(encoded.length!==v16.bytes||await sha(html)!==v16.sha256)throw new Error('V16 integrity check failed');
+      r=await fetch('./v16-patch.b64?rev=17',{cache:'no-store'});if(!r.ok)throw new Error(`V16 patch HTTP ${r.status}`);const v16=JSON.parse(await gunzip(await r.text()));if(v16.version!==16||v16.baseVersion!==15)throw new Error('Invalid V16 patch');html=apply(html,v16,'V16');encoded=new TextEncoder().encode(html);if(encoded.length!==v16.bytes||await sha(html)!==v16.sha256)throw new Error('V16 integrity check failed');
       for(const term of ['@media(pointer:coarse) and (min-width:700px)','width:116px;height:116px','left:180px','right:180px','user-select:none'])if(!html.includes(term))throw new Error(`V16 validation missing ${term}`);
-      status.textContent='STARTING V16 RACE ENGINE';location.replace(URL.createObjectURL(new Blob([html],{type:'text/html'})));
-    }catch(err){document.getElementById('boot').style.display='none';document.getElementById('err').style.display='block';document.getElementById('errmsg').textContent=String(err&&err.message||err)}
+      status.textContent='STARTING V17 RACE ENGINE';
+      location.replace(URL.createObjectURL(new Blob([html],{type:'text/html'})));
+    }catch(err){
+      document.getElementById('boot').style.display='none';
+      document.getElementById('err').style.display='block';
+      document.getElementById('errmsg').textContent=String(err&&err.message||err);
+    }
   })();
   </script>
 </body>
